@@ -36,3 +36,4 @@ saved_model/**/* filter=lfs diff=lfs merge=lfs -text
 granite_docling.png filter=lfs diff=lfs merge=lfs -text
 assets/new_arxiv.png filter=lfs diff=lfs merge=lfs -text
 assets/granite_docling_split_page.png filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
