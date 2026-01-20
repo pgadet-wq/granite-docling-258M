@@ -1,0 +1,16 @@
+# MEL/MMEL Parser Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+transformers>=4.40.0
+torch>=2.0.0
+Pillow>=9.0.0
+
+# PDF support (optional)
+pdf2image>=1.16.0
+
+# For GPU acceleration (optional, install separately)
+# pip install accelerate
+
+# For ONNX deployment (optional)
+# pip install optimum[onnxruntime]
