@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEL/MMEL Parser - Granite-Docling</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+        }
+
+        .sidebar {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 25px;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .upload-zone {
+            border: 2px dashed #444;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #00d4ff;
+            background: rgba(0,212,255,0.05);
+        }
+
+        .upload-zone svg {
+            width: 50px;
+            height: 50px;
+            fill: #666;
+            margin-bottom: 15px;
+        }
+
+        .upload-zone p {
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone small {
+            color: #555;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,212,255,0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover, .tab.active {
+            background: rgba(0,212,255,0.1);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .summary-card .label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .chapter-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .chapter-header {
+            padding: 15px 20px;
+            background: rgba(0,212,255,0.1);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chapter-header h3 {
+            color: #00d4ff;
+            font-size: 1.1rem;
+        }
+
+        .chapter-header .badge {
+            background: #00d4ff;
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .chapter-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .chapter-section.open .chapter-content {
+            max-height: 2000px;
+            padding: 15px 20px;
+        }
+
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .item-table th {
+            text-align: left;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            color: #00d4ff;
+            font-weight: 500;
+        }
+
+        .item-table td {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .item-table tr:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .category-A { background: #ff4444; color: #fff; }
+        .category-B { background: #ff8800; color: #fff; }
+        .category-C { background: #ffcc00; color: #000; }
+        .category-D { background: #44aa44; color: #fff; }
+        .category-- { background: #666; color: #fff; }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            color: #e0e0e0;
+            font-size: 1rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        .loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            fill: #333;
+            margin-bottom: 20px;
+        }
+
+        .json-view {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .json-key { color: #79c0ff; }
+        .json-string { color: #a5d6ff; }
+        .json-number { color: #56d364; }
+        .json-boolean { color: #ff7b72; }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.ready { background: #44aa44; }
+        .status-dot.loading { background: #ffcc00; animation: pulse 1s infinite; }
+        .status-dot.error { background: #ff4444; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .export-buttons .btn {
+            flex: 1;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MEL/MMEL Parser</h1>
+            <p>Powered by Granite-Docling-258M Vision-Language Model</p>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span id="status-text">Checking status...</span>
+                </div>
+
+                <h2>Upload Document</h2>
+
+                <div class="upload-zone" id="upload-zone">
+                    <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    <p>Drop PDF or image here</p>
+                    <small>Supports: PDF, PNG, JPG, TIFF</small>
+                    <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp">
+                </div>
+
+                <button class="btn btn-primary" id="parse-btn" disabled>
+                    Parse Document
+                </button>
+
+                <button class="btn btn-secondary" id="demo-btn">
+                    Load Demo Data
+                </button>
+
+                <div class="export-buttons" id="export-buttons" style="display:none;">
+                    <button class="btn btn-secondary" id="export-json">
+                        Export JSON
+                    </button>
+                    <button class="btn btn-secondary" id="export-md">
+                        Export MD
+                    </button>
+                </div>
+            </aside>
+
+            <main class="results-panel">
+                <div class="tabs">
+                    <button class="tab active" data-tab="summary">Summary</button>
+                    <button class="tab" data-tab="chapters">Chapters</button>
+                    <button class="tab" data-tab="search">Search</button>
+                    <button class="tab" data-tab="raw">Raw JSON</button>
+                </div>
+
+                <!-- Summary Tab -->
+                <div class="tab-content active" id="tab-summary">
+                    <div class="empty-state" id="empty-state">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
+                        <p>Upload a MEL/MMEL document to begin parsing</p>
+                    </div>
+
+                    <div id="summary-content" style="display:none;">
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <div class="value" id="sum-type">-</div>
+                                <div class="label">Document Type</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="value" id="sum-aircraft">-</div>
+                                <div class="label">Aircraft</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="value" id="sum-chapters">0</div>
+                                <div class="label">Chapters</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="value" id="sum-items">0</div>
+                                <div class="label">Total Items</div>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-bottom:15px;color:#00d4ff;">Items by Category</h3>
+                        <div class="summary-grid" id="category-grid"></div>
+
+                        <div style="margin-top:20px;padding:15px;background:rgba(0,0,0,0.2);border-radius:8px;">
+                            <p><strong>Operator:</strong> <span id="sum-operator">-</span></p>
+                            <p><strong>Authority:</strong> <span id="sum-authority">-</span></p>
+                            <p><strong>Revision:</strong> <span id="sum-revision">-</span></p>
+                            <p><strong>Effective Date:</strong> <span id="sum-date">-</span></p>
+                        </div>
+                    </div>
+
+                    <div class="loading" id="loading" style="display:none;">
+                        <div class="spinner"></div>
+                        <p>Parsing document...</p>
+                    </div>
+                </div>
+
+                <!-- Chapters Tab -->
+                <div class="tab-content" id="tab-chapters">
+                    <div id="chapters-list"></div>
+                </div>
+
+                <!-- Search Tab -->
+                <div class="tab-content" id="tab-search">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Search items (e.g., 'fire', 'landing gear')">
+                        <button class="btn btn-primary" id="search-btn" style="width:auto;">Search</button>
+                    </div>
+                    <div id="search-results"></div>
+                </div>
+
+                <!-- Raw JSON Tab -->
+                <div class="tab-content" id="tab-raw">
+                    <div class="json-view" id="json-content">
+                        <pre>// No document loaded</pre>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentDocument = null;
+
+        // Elements
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const parseBtn = document.getElementById('parse-btn');
+        const demoBtn = document.getElementById('demo-btn');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const exportButtons = document.getElementById('export-buttons');
+
+        // Check status
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+
+                statusDot.className = 'status-dot ready';
+                statusText.textContent = data.model_loaded ? 'Model loaded' : 'Ready (model not loaded)';
+            } catch (e) {
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'Connection error';
+            }
+        }
+
+        // File upload handling
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            if (fileInput.files.length) {
+                const file = fileInput.files[0];
+                uploadZone.querySelector('p').textContent = file.name;
+                parseBtn.disabled = false;
+            }
+        }
+
+        // Parse document
+        parseBtn.addEventListener('click', async () => {
+            if (!fileInput.files.length) return;
+
+            showLoading(true);
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    currentDocument = data.document;
+                    displayResults(data);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error parsing document: ' + e.message);
+            }
+
+            showLoading(false);
+        });
+
+        // Demo data
+        demoBtn.addEventListener('click', async () => {
+            showLoading(true);
+
+            try {
+                const res = await fetch('/api/parse-demo', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    currentDocument = data.document;
+                    displayResults(data);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+
+            showLoading(false);
+        });
+
+        // Display results
+        function displayResults(data) {
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('summary-content').style.display = 'block';
+            exportButtons.style.display = 'flex';
+
+            const doc = data.document;
+            const summary = data.summary;
+
+            // Summary
+            document.getElementById('sum-type').textContent = doc.document_type;
+            document.getElementById('sum-aircraft').textContent = doc.aircraft_type;
+            document.getElementById('sum-chapters').textContent = summary.total_chapters;
+            document.getElementById('sum-items').textContent = summary.total_items;
+            document.getElementById('sum-operator').textContent = doc.operator || '-';
+            document.getElementById('sum-authority').textContent = doc.authority || '-';
+            document.getElementById('sum-revision').textContent = doc.revision_number || '-';
+            document.getElementById('sum-date').textContent = doc.effective_date || '-';
+
+            // Category breakdown
+            const categoryGrid = document.getElementById('category-grid');
+            categoryGrid.innerHTML = '';
+
+            const categories = summary.items_by_category || {};
+            ['A', 'B', 'C', 'D', '-'].forEach(cat => {
+                if (categories[cat]) {
+                    categoryGrid.innerHTML += `
+                        <div class="summary-card">
+                            <div class="value"><span class="category-badge category-${cat}">${cat}</span> ${categories[cat]}</div>
+                            <div class="label">Category ${cat}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            // Chapters
+            const chaptersList = document.getElementById('chapters-list');
+            chaptersList.innerHTML = '';
+
+            doc.chapters.forEach((chapter, idx) => {
+                chaptersList.innerHTML += `
+                    <div class="chapter-section" onclick="toggleChapter(this)">
+                        <div class="chapter-header">
+                            <h3>Chapter ${chapter.chapter_number}: ${chapter.title}</h3>
+                            <span class="badge">${chapter.items.length} items</span>
+                        </div>
+                        <div class="chapter-content">
+                            <table class="item-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Description</th>
+                                        <th>Inst</th>
+                                        <th>Req</th>
+                                        <th>Cat</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${chapter.items.map(item => `
+                                        <tr>
+                                            <td>${item.item_number}</td>
+                                            <td>${item.description}</td>
+                                            <td>${item.number_installed}</td>
+                                            <td>${item.number_required}</td>
+                                            <td><span class="category-badge category-${item.repair_category}">${item.repair_category}</span></td>
+                                            <td>${item.remarks}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // JSON view
+            document.getElementById('json-content').innerHTML =
+                '<pre>' + syntaxHighlight(JSON.stringify(doc, null, 2)) + '</pre>';
+        }
+
+        function toggleChapter(el) {
+            el.classList.toggle('open');
+        }
+
+        // Search
+        document.getElementById('search-btn').addEventListener('click', performSearch);
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        async function performSearch() {
+            if (!currentDocument) {
+                alert('Please load a document first');
+                return;
+            }
+
+            const keyword = document.getElementById('search-input').value.trim();
+            if (!keyword) return;
+
+            try {
+                const res = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        document: currentDocument,
+                        keyword: keyword
+                    })
+                });
+
+                const data = await res.json();
+                const resultsDiv = document.getElementById('search-results');
+
+                if (data.success && data.results.length) {
+                    resultsDiv.innerHTML = `
+                        <p style="margin-bottom:15px;">Found ${data.count} items matching "${keyword}"</p>
+                        <table class="item-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.results.map(item => `
+                                    <tr>
+                                        <td>${item.item_number}</td>
+                                        <td>${item.description}</td>
+                                        <td><span class="category-badge category-${item.repair_category}">${item.repair_category}</span></td>
+                                        <td>${item.remarks}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<p>No items found matching "${keyword}"</p>`;
+                }
+            } catch (e) {
+                alert('Search error: ' + e.message);
+            }
+        }
+
+        // Export
+        document.getElementById('export-json').addEventListener('click', () => exportDoc('json'));
+        document.getElementById('export-md').addEventListener('click', () => exportDoc('markdown'));
+
+        async function exportDoc(format) {
+            if (!currentDocument) return;
+
+            try {
+                const res = await fetch(`/api/export/${format}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ document: currentDocument })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const content = format === 'json'
+                        ? JSON.stringify(data.content, null, 2)
+                        : data.content;
+
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch (e) {
+                alert('Export error: ' + e.message);
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Helpers
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('empty-state').style.display = show ? 'none' : 'block';
+            if (!show && currentDocument) {
+                document.getElementById('empty-state').style.display = 'none';
+            }
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Init
+        checkStatus();
+    </script>
+</body>
+</html>

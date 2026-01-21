@@ -14,3 +14,6 @@ pdf2image>=1.16.0
 
 # For ONNX deployment (optional)
 # pip install optimum[onnxruntime]
+
+# Web interface
+flask>=2.0.0
